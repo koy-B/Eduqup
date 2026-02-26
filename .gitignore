@@ -18,7 +18,7 @@ venv/
 local_settings.py
 
 # Environment variables and secrets
-.env
+.env*
 *.env
 pythonanywhere.env
 
