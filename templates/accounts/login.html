@@ -1,0 +1,27 @@
+{% extends "base.html" %}
+{% block content %}
+<style>
+    .auth-shell { max-width: 460px; margin: 20px auto; }
+    .auth-card { border: 1px solid rgba(10, 10, 20, 0.1); border-radius: 14px; padding: 18px; background: #fff; }
+    .auth-title { margin-bottom: 4px; }
+    .auth-sub { color: #67677d; margin-bottom: 12px; }
+    .auth-foot { margin-top: 10px; font-size: 14px; color: #67677d; }
+</style>
+<div class="auth-shell">
+    <div class="auth-card">
+        <h2 class="auth-title">Welcome back</h2>
+        <p class="auth-sub">Login to continue your learning sessions.</p>
+        <form method="post">
+            {% csrf_token %}
+            {{ form.email.label_tag }}{{ form.email }}
+            {{ form.password.label_tag }}{{ form.password }}
+            {% for field in form %}
+                {% for err in field.errors %}<div class="msg error">{{ err }}</div>{% endfor %}
+            {% endfor %}
+            {% for err in form.non_field_errors %}<div class="msg error">{{ err }}</div>{% endfor %}
+            <button type="submit">Login</button>
+        </form>
+        <div class="auth-foot">No account yet? <a href="/register/">Create one</a></div>
+    </div>
+</div>
+{% endblock %}

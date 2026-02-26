@@ -1,0 +1,132 @@
+{% extends "base.html" %}
+{% block content %}
+<style>
+    .pricing-wrap {
+        padding: 8px;
+    }
+    .hero {
+        border: 1px solid rgba(10, 10, 20, 0.1);
+        border-radius: 16px;
+        background: linear-gradient(140deg, #ffffff 0%, #f8f6f1 100%);
+        padding: 24px;
+    }
+    .hero h1 { font-size: clamp(34px, 6vw, 62px); margin: 0; line-height: 1.02; }
+    .hero p { margin-top: 10px; color: #67677d; max-width: 720px; }
+    .grid {
+        margin-top: 14px;
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+        gap: 12px;
+    }
+    .plan {
+        border: 1px solid rgba(10, 10, 20, 0.1);
+        border-radius: 16px;
+        background: #fff;
+        padding: 16px;
+    }
+    .plan.featured {
+        background: #0a0a14;
+        color: #f5f0e8;
+        border-color: #0a0a14;
+    }
+    .plan .tag {
+        font-size: 12px;
+        letter-spacing: 0.07em;
+        text-transform: uppercase;
+        font-weight: 700;
+        color: #1a9b8c;
+    }
+    .plan.featured .tag { color: #e8b84b; }
+    .plan .price {
+        font-family: "Syne", sans-serif;
+        font-size: 50px;
+        line-height: 1;
+        margin: 8px 0 3px;
+    }
+    .plan .unit { color: #67677d; font-size: 13px; }
+    .plan.featured .unit { color: rgba(245, 240, 232, 0.66); }
+    .plan ul { padding-left: 18px; margin: 14px 0; }
+    .plan li { margin: 7px 0; }
+    .plan .cta {
+        display: inline-block;
+        text-decoration: none;
+        padding: 10px 12px;
+        border-radius: 10px;
+        font-weight: 700;
+        background: #0a0a14;
+        color: #f5f0e8;
+    }
+    .plan.featured .cta { background: #e8b84b; color: #0a0a14; }
+    .faq {
+        margin-top: 16px;
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+        gap: 10px;
+    }
+    .faq-item {
+        border: 1px solid rgba(10, 10, 20, 0.1);
+        border-radius: 12px;
+        padding: 12px;
+        background: #fff;
+    }
+    .faq-item h3 { font-size: 18px; margin: 0 0 6px 0; }
+    .faq-item p { margin: 0; color: #67677d; }
+</style>
+
+<div class="pricing-wrap">
+    <section class="hero">
+        <h1>Simple pricing,<br>clear value.</h1>
+        <p>
+            Start free and upgrade when needed. Pro billing integration can be connected next
+            (Stripe/PayPal) to automate plan activation.
+        </p>
+    </section>
+
+    <section class="grid">
+        <article class="plan">
+            <div class="tag">Starter</div>
+            <div class="price">$0</div>
+            <div class="unit">forever free</div>
+            <ul>
+                <li>Text chat with AI tutor</li>
+                <li>Upload PDF, DOCX, JPG, PNG</li>
+                <li>Auto quiz generation from course files</li>
+                <li>Daily message limits</li>
+            </ul>
+            {% if request.user.is_authenticated %}
+                <a class="cta" href="/dashboard/">Use Starter</a>
+            {% else %}
+                <a class="cta" href="/register/">Create account</a>
+            {% endif %}
+        </article>
+
+        <article class="plan featured">
+            <div class="tag">Pro</div>
+            <div class="price">$9</div>
+            <div class="unit">monthly (example)</div>
+            <ul>
+                <li>Higher usage and limits</li>
+                <li>Priority AI tutoring workload</li>
+                <li>Voice architecture prepared</li>
+                <li>Future advanced analytics and reports</li>
+            </ul>
+            <a class="cta" href="/dashboard/">Upgrade path</a>
+        </article>
+    </section>
+
+    <section class="faq">
+        <article class="faq-item">
+            <h3>Can I switch later?</h3>
+            <p>Yes. Start on Starter and move to Pro when payment integration is enabled.</p>
+        </article>
+        <article class="faq-item">
+            <h3>Is my data isolated?</h3>
+            <p>Yes. Chat sessions and documents are linked to your authenticated account.</p>
+        </article>
+        <article class="faq-item">
+            <h3>What about voice now?</h3>
+            <p>Voice endpoints are prepared in architecture and restricted to Pro flow.</p>
+        </article>
+    </section>
+</div>
+{% endblock %}

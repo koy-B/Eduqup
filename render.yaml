@@ -1,0 +1,57 @@
+# Configuration Render pour EduQuP
+# https://docs.render.com/
+
+services:
+  # Application web principale
+  - type: web
+    name: edututor-web
+    runtime: docker
+    plan: starter  # $7/mois - 512MB RAM, 0.1 CPU
+    buildCommand: "docker build -t edututor ."
+    startCommand: "gunicorn edututor_ai.wsgi:application --bind 0.0.0.0:$PORT --workers 2 --threads 2"
+    envVars:
+      - key: DATABASE_URL
+        fromDatabase:
+          name: edututor-db
+          property: connectionString
+      - key: REDIS_URL
+        fromService:
+          type: redis
+          name: edututor-redis
+          property: connectionString
+      - key: DJANGO_SECRET_KEY
+        generateValue: true
+      - key: DEBUG
+        value: false
+      - key: GEMINI_API_KEY
+        sync: false  # À définir manuellement
+      - key: GEMINI_MODEL
+        value: gemini-2.5-flash
+      - key: ALLOWED_HOSTS
+        fromService:
+          type: web
+          name: edututor-web
+          property: host
+      - key: SECURE_SSL_REDIRECT
+        value: true
+      - key: SECURE_HSTS_SECONDS
+        value: 31536000
+      - key: FREE_DAILY_MESSAGE_LIMIT
+        value: 25
+      - key: MAX_UPLOAD_SIZE_MB
+        value: 10
+      - key: MESSAGE_PAGE_SIZE
+        value: 20
+
+  # Base de données PostgreSQL
+  - type: pserv
+    name: edututor-db
+    runtime: postgres
+    plan: starter  # $7/mois - 256MB RAM
+    ipAllowList: []  # Accès uniquement depuis les services Render
+
+  # Redis pour les WebSockets et cache
+  - type: redis
+    name: edututor-redis
+    plan: starter  # $6/mois - 30MB RAM
+    ipAllowList: []  # Accès uniquement depuis les services Render

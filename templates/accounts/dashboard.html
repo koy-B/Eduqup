@@ -1,0 +1,308 @@
+{% extends "base.html" %}
+{% block content %}
+<style>
+    :root { --ink:#0a0a14; --cream:#f5f0e8; --teal:#1a9b8c; --gold:#e8b84b; --muted:#67677d; --border:rgba(10,10,20,0.12); }
+    .app-shell { display: grid; grid-template-columns: 280px 1fr; gap: 16px; min-height: 68vh; }
+    .panel { border: 1px solid var(--border); border-radius: 10px; background: #fff; overflow: hidden; }
+    .panel-head { padding: 12px; border-bottom: 1px solid var(--border); background: linear-gradient(90deg, #fff, #f8f6f1); }
+    .panel-body { padding: 12px; }
+    .sessions { display: flex; flex-direction: column; gap: 8px; max-height: 58vh; overflow: auto; }
+    .session-btn { text-align: left; border: 1px solid var(--border); background: #fff; padding: 10px; border-radius: 8px; cursor: pointer; color:var(--ink); }
+    .session-btn.active { border-color: var(--teal); background: #eef8f6; }
+    .chat-box { height: 50vh; overflow: auto; border: 1px solid var(--border); border-radius: 8px; padding: 10px; background: #f8f6f1; }
+    .bubble { margin: 8px 0; padding: 10px; border-radius: 8px; max-width: 85%; white-space: pre-wrap; }
+    .bubble.user { background: #e4f4f1; margin-left: auto; }
+    .bubble.assistant { background: #fff; margin-right: auto; border:1px solid var(--border); }
+    .typing { font-size: 13px; color: var(--muted); margin-top: 6px; min-height: 18px; }
+    .row2 { display: grid; grid-template-columns: 1fr 220px; gap: 8px; margin-top: 10px; }
+    .uploader { margin-top: 12px; padding-top: 12px; border-top: 1px solid var(--border); }
+    .muted { color: var(--muted); font-size: 13px; }
+    .top-controls { display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; }
+    .link-btn { width: auto; padding: 6px 10px; background:var(--ink); color:var(--cream); }
+    @media (max-width: 900px) {
+        .app-shell { grid-template-columns: 1fr; }
+        .chat-box { height: 42vh; }
+    }
+</style>
+
+<div class="app-shell">
+    <section class="panel">
+        <div class="panel-head">
+            <strong>Sessions</strong>
+            <div class="muted">Plan: {% if request.user.is_pro %}Pro{% else %}Free{% endif %}</div>
+        </div>
+        <div class="panel-body">
+            <button id="new-session-btn" type="button">New Session</button>
+            <div id="sessions-list" class="sessions"></div>
+        </div>
+    </section>
+
+    <section class="panel">
+        <div class="panel-head">
+            <strong>EduTutor AI Chat</strong>
+            <div class="muted">Realtime chat + file analysis</div>
+        </div>
+        <div class="panel-body">
+            <div class="top-controls">
+                <button id="load-older-btn" class="link-btn" type="button">Load older</button>
+                <div id="page-indicator" class="muted"></div>
+            </div>
+            <div id="chat-box" class="chat-box"></div>
+            <div id="typing-indicator" class="typing"></div>
+            <div class="row2">
+                <textarea id="message-input" rows="3" placeholder="Write your message..."></textarea>
+                <button id="send-btn" type="button">Send</button>
+            </div>
+            <div class="uploader">
+                <label for="doc-file"><strong>Upload document</strong></label>
+                <input id="doc-file" type="file" accept=".pdf,.docx,.jpg,.jpeg,.png" />
+                <button id="upload-btn" type="button">Upload and analyze</button>
+            </div>
+        </div>
+    </section>
+</div>
+
+<script>
+    (function () {
+        const sessionsList = document.getElementById("sessions-list");
+        const chatBox = document.getElementById("chat-box");
+        const messageInput = document.getElementById("message-input");
+        const sendBtn = document.getElementById("send-btn");
+        const newSessionBtn = document.getElementById("new-session-btn");
+        const uploadBtn = document.getElementById("upload-btn");
+        const docFile = document.getElementById("doc-file");
+        const loadOlderBtn = document.getElementById("load-older-btn");
+        const pageIndicator = document.getElementById("page-indicator");
+        const typingIndicator = document.getElementById("typing-indicator");
+        let activeSessionId = null;
+        let activePage = 1;
+        let totalPages = 1;
+        let ws = null;
+        let localTypingTimeout = null;
+
+        function getCookie(name) {
+            const value = `; ${document.cookie}`;
+            const parts = value.split(`; ${name}=`);
+            if (parts.length === 2) return parts.pop().split(";").shift();
+            return "";
+        }
+        const csrfToken = getCookie("csrftoken");
+
+        function showError(text) {
+            const div = document.createElement("div");
+            div.className = "bubble assistant";
+            div.textContent = text;
+            chatBox.appendChild(div);
+            chatBox.scrollTop = chatBox.scrollHeight;
+        }
+
+        function renderBubble(msg, prepend) {
+            const div = document.createElement("div");
+            div.className = "bubble " + (msg.role === "user" ? "user" : "assistant");
+            div.textContent = msg.content;
+            if (prepend) {
+                chatBox.insertBefore(div, chatBox.firstChild);
+            } else {
+                chatBox.appendChild(div);
+                chatBox.scrollTop = chatBox.scrollHeight;
+            }
+        }
+
+        function clearChat() {
+            chatBox.innerHTML = "";
+        }
+
+        function renderSessions(sessions) {
+            sessionsList.innerHTML = "";
+            sessions.forEach((s) => {
+                const btn = document.createElement("button");
+                btn.className = "session-btn" + (s.id === activeSessionId ? " active" : "");
+                btn.textContent = s.title;
+                btn.onclick = () => selectSession(s.id);
+                sessionsList.appendChild(btn);
+            });
+        }
+
+        function updatePaginationUi() {
+            pageIndicator.textContent = `Page ${activePage}/${totalPages}`;
+            loadOlderBtn.disabled = activePage >= totalPages;
+        }
+
+        function connectWebSocket(sessionId) {
+            if (ws) ws.close();
+            const protocol = window.location.protocol === "https:" ? "wss" : "ws";
+            ws = new WebSocket(`${protocol}://${window.location.host}/ws/chat/${sessionId}/`);
+            ws.onopen = function () {};
+            ws.onclose = function () {};
+            ws.onerror = function () {
+                showError("WebSocket connection error, fallback to HTTP.");
+            };
+            ws.onmessage = function (event) {
+                const payload = JSON.parse(event.data || "{}");
+                if (payload.type === "message" && payload.message) {
+                    renderBubble(payload.message, false);
+                    typingIndicator.textContent = "";
+                }
+                if (payload.type === "typing" && payload.user_id === 0) {
+                    typingIndicator.textContent = payload.is_typing ? "Tutor is typing..." : "";
+                }
+                if (payload.type === "error") {
+                    showError(payload.detail || "Chat error");
+                    typingIndicator.textContent = "";
+                }
+            };
+        }
+
+        async function loadSessions() {
+            const res = await fetch("/app/api/chat/sessions/");
+            const data = await res.json();
+            const sessions = data.sessions || [];
+            if (!activeSessionId && sessions.length) activeSessionId = sessions[0].id;
+            renderSessions(sessions);
+            if (activeSessionId) await loadMessages(activeSessionId, 1, false);
+            else clearChat();
+        }
+
+        async function selectSession(sessionId) {
+            activeSessionId = sessionId;
+            activePage = 1;
+            await loadSessions();
+            connectWebSocket(sessionId);
+        }
+
+        async function loadMessages(sessionId, page, appendOlder) {
+            const res = await fetch(`/app/api/chat/sessions/${sessionId}/messages/?page=${page}&page_size=20`);
+            if (!res.ok) return;
+            const data = await res.json();
+            const messages = data.messages || [];
+            const pg = data.pagination || {};
+            activePage = pg.page || 1;
+            totalPages = pg.total_pages || 1;
+            updatePaginationUi();
+
+            if (!appendOlder) clearChat();
+            if (!messages.length && !appendOlder) {
+                showError("Start your first message in this session.");
+                return;
+            }
+            if (appendOlder) {
+                for (let i = messages.length - 1; i >= 0; i -= 1) {
+                    renderBubble(messages[i], true);
+                }
+            } else {
+                messages.forEach((msg) => renderBubble(msg, false));
+            }
+        }
+
+        async function createSession() {
+            const res = await fetch("/app/api/chat/sessions/create/", {
+                method: "POST",
+                headers: {
+                    "Content-Type": "application/json",
+                    "X-CSRFToken": csrfToken
+                },
+                body: JSON.stringify({ title: "" })
+            });
+            if (!res.ok) return;
+            const data = await res.json();
+            activeSessionId = data.id;
+            await loadSessions();
+            connectWebSocket(activeSessionId);
+        }
+
+        async function sendMessageHttpFallback(content) {
+            const res = await fetch(`/app/api/chat/sessions/${activeSessionId}/send/`, {
+                method: "POST",
+                headers: {
+                    "Content-Type": "application/json",
+                    "X-CSRFToken": csrfToken
+                },
+                body: JSON.stringify({ content })
+            });
+            const data = await res.json();
+            if (!res.ok) {
+                showError(data.detail || "Send error");
+                typingIndicator.textContent = "";
+                return;
+            }
+            await loadMessages(activeSessionId, 1, false);
+        }
+
+        async function sendMessage() {
+            const content = messageInput.value.trim();
+            if (!content) return;
+            if (!activeSessionId) await createSession();
+            sendBtn.disabled = true;
+            typingIndicator.textContent = "Tutor is typing...";
+            try {
+                messageInput.value = "";
+                if (ws && ws.readyState === WebSocket.OPEN) {
+                    ws.send(JSON.stringify({ type: "message", content }));
+                } else {
+                    await sendMessageHttpFallback(content);
+                }
+            } finally {
+                sendBtn.disabled = false;
+            }
+        }
+
+        async function uploadDocument() {
+            if (!docFile.files.length) return;
+            const formData = new FormData();
+            formData.append("file", docFile.files[0]);
+            uploadBtn.disabled = true;
+            try {
+                const res = await fetch("/app/api/documents/upload/", {
+                    method: "POST",
+                    headers: { "X-CSRFToken": csrfToken },
+                    body: formData
+                });
+                const data = await res.json();
+                if (!res.ok) {
+                    showError("Upload error: " + JSON.stringify(data.errors || {}));
+                    return;
+                }
+                activeSessionId = data.session_id;
+                await loadSessions();
+                connectWebSocket(activeSessionId);
+                docFile.value = "";
+            } finally {
+                uploadBtn.disabled = false;
+            }
+        }
+
+        function emitTyping() {
+            if (!ws || ws.readyState !== WebSocket.OPEN) return;
+            ws.send(JSON.stringify({ type: "typing", is_typing: true }));
+            if (localTypingTimeout) clearTimeout(localTypingTimeout);
+            localTypingTimeout = setTimeout(() => {
+                if (ws && ws.readyState === WebSocket.OPEN) {
+                    ws.send(JSON.stringify({ type: "typing", is_typing: false }));
+                }
+            }, 700);
+        }
+
+        newSessionBtn.addEventListener("click", createSession);
+        sendBtn.addEventListener("click", sendMessage);
+        uploadBtn.addEventListener("click", uploadDocument);
+        loadOlderBtn.addEventListener("click", async function () {
+            if (!activeSessionId || activePage >= totalPages) return;
+            await loadMessages(activeSessionId, activePage + 1, true);
+        });
+
+        messageInput.addEventListener("keydown", function (e) {
+            if (e.key === "Enter" && !e.shiftKey) {
+                e.preventDefault();
+                sendMessage();
+                return;
+            }
+            emitTyping();
+        });
+        messageInput.addEventListener("input", emitTyping);
+
+        loadSessions().then(function () {
+            if (activeSessionId) connectWebSocket(activeSessionId);
+        });
+    })();
+</script>
+{% endblock %}

@@ -1,0 +1,311 @@
+{% extends "base.html" %}
+{% block content %}
+<style>
+    .landing {
+        background: linear-gradient(180deg, #fff 0%, #f8f6f1 100%);
+        border: 1px solid rgba(10, 10, 20, 0.08);
+        border-radius: 16px;
+        overflow: hidden;
+    }
+    .hero {
+        padding: 52px 26px;
+        position: relative;
+        background:
+            radial-gradient(600px 220px at 90% 0%, rgba(232, 184, 75, 0.2), transparent 70%),
+            radial-gradient(520px 200px at 0% 100%, rgba(26, 155, 140, 0.14), transparent 70%);
+    }
+    .badge {
+        display: inline-block;
+        border: 1px solid rgba(232, 184, 75, 0.45);
+        background: rgba(232, 184, 75, 0.12);
+        border-radius: 999px;
+        padding: 7px 12px;
+        font-size: 12px;
+        font-weight: 700;
+        letter-spacing: 0.04em;
+        text-transform: uppercase;
+        margin-bottom: 12px;
+    }
+    .hero h1 {
+        font-size: clamp(38px, 7vw, 82px);
+        line-height: 0.96;
+        margin: 0;
+        letter-spacing: -0.02em;
+    }
+    .hero h1 span { color: #1a9b8c; }
+    .hero p {
+        margin-top: 14px;
+        max-width: 720px;
+        color: #67677d;
+        font-size: 17px;
+        line-height: 1.65;
+    }
+    .hero-actions {
+        display: flex;
+        gap: 10px;
+        flex-wrap: wrap;
+        margin-top: 20px;
+    }
+    .hero-actions a {
+        text-decoration: none;
+        padding: 11px 16px;
+        border-radius: 12px;
+        font-weight: 700;
+        border: 1px solid rgba(10, 10, 20, 0.14);
+        color: #0a0a14;
+        background: #fff;
+    }
+    .hero-actions a.primary {
+        background: #0a0a14;
+        color: #f5f0e8;
+        border-color: #0a0a14;
+    }
+    .hero-actions a.primary:hover { background: #1a9b8c; border-color: #1a9b8c; }
+    .hero-actions a:hover { background: #f3f3ef; }
+    .stats {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+        gap: 10px;
+        margin-top: 24px;
+        max-width: 640px;
+    }
+    .stat {
+        border: 1px solid rgba(10, 10, 20, 0.1);
+        border-radius: 12px;
+        padding: 12px;
+        background: #fff;
+    }
+    .stat strong { font-family: "Syne", sans-serif; font-size: 24px; display: block; }
+    .stat span { color: #67677d; font-size: 13px; }
+    .section {
+        padding: 34px 22px;
+        border-top: 1px solid rgba(10, 10, 20, 0.08);
+    }
+    .section h2 { margin: 0 0 8px 0; font-size: clamp(28px, 4.3vw, 48px); }
+    .section p.lead { margin: 0; color: #67677d; max-width: 700px; line-height: 1.65; }
+    .how-grid, .feature-grid, .testi-grid {
+        margin-top: 18px;
+        display: grid;
+        gap: 12px;
+    }
+    .how-grid { grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); }
+    .feature-grid { grid-template-columns: repeat(auto-fit, minmax(230px, 1fr)); }
+    .testi-grid { grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); }
+    .tile {
+        border: 1px solid rgba(10, 10, 20, 0.1);
+        border-radius: 14px;
+        padding: 14px;
+        background: #fff;
+    }
+    .tile .kicker {
+        font-size: 11px;
+        letter-spacing: 0.07em;
+        text-transform: uppercase;
+        color: #1a9b8c;
+        font-weight: 700;
+    }
+    .tile h3 { margin: 6px 0; font-size: 20px; }
+    .tile p { margin: 0; color: #67677d; line-height: 1.6; }
+    .pricing-grid {
+        margin-top: 18px;
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+        gap: 12px;
+    }
+    .price {
+        border: 1px solid rgba(10, 10, 20, 0.1);
+        border-radius: 16px;
+        padding: 16px;
+        background: #fff;
+    }
+    .price.featured {
+        background: #0a0a14;
+        border-color: #0a0a14;
+        color: #f5f0e8;
+    }
+    .price .name { font-size: 12px; letter-spacing: 0.08em; text-transform: uppercase; color: #1a9b8c; font-weight: 700; }
+    .price.featured .name { color: #e8b84b; }
+    .price .amount { font-family: "Syne", sans-serif; font-size: 44px; line-height: 1; margin: 8px 0 4px; }
+    .price .unit { color: #67677d; font-size: 13px; }
+    .price.featured .unit { color: rgba(245, 240, 232, 0.66); }
+    .price ul { margin: 14px 0; padding-left: 18px; }
+    .price li { margin: 8px 0; }
+    .price a {
+        display: inline-block;
+        text-decoration: none;
+        margin-top: 6px;
+        padding: 10px 12px;
+        border-radius: 10px;
+        font-weight: 700;
+        background: #0a0a14;
+        color: #f5f0e8;
+    }
+    .price.featured a { background: #e8b84b; color: #0a0a14; }
+    .cta {
+        margin-top: 10px;
+        border-radius: 16px;
+        background: linear-gradient(135deg, #1a9b8c, #0f766a);
+        color: #fff;
+        padding: 28px 22px;
+    }
+    .cta h2 { margin: 0; }
+    .cta p { margin: 10px 0 16px; color: rgba(255,255,255,0.86); max-width: 700px; }
+    .cta a {
+        text-decoration: none;
+        display: inline-block;
+        background: #e8b84b;
+        color: #0a0a14;
+        padding: 11px 16px;
+        border-radius: 12px;
+        font-weight: 700;
+    }
+    .reveal {
+        opacity: 0;
+        transform: translateY(18px);
+        transition: opacity 0.45s ease, transform 0.45s ease;
+    }
+    .reveal.in { opacity: 1; transform: translateY(0); }
+</style>
+
+<main class="landing">
+    <section class="hero">
+        <div class="badge">AI learning copilot</div>
+        <h1>Study smarter with<br><span>EduTutor AI</span></h1>
+        <p>
+            Register, upload course material, chat with an AI tutor, and train with personalized questions
+            generated from your own lessons.
+        </p>
+        <div class="hero-actions">
+            {% if request.user.is_authenticated %}
+                <a class="primary" href="/dashboard/">Open Dashboard</a>
+            {% else %}
+                <a class="primary" href="/register/">Start Free</a>
+                <a href="/login/">Login</a>
+            {% endif %}
+        </div>
+        <div class="stats">
+            <div class="stat"><strong>24/7</strong><span>Tutor availability</span></div>
+            <div class="stat"><strong>PDF/DOCX/IMG</strong><span>Course uploads supported</span></div>
+            <div class="stat"><strong>Free + Pro</strong><span>Scale at your pace</span></div>
+        </div>
+    </section>
+
+    <section class="section reveal">
+        <h2>How it works</h2>
+        <p class="lead">Simple flow designed for daily learning discipline.</p>
+        <div class="how-grid">
+            <article class="tile">
+                <div class="kicker">Step 01</div>
+                <h3>Create account</h3>
+                <p>Register in seconds and access your private learning workspace.</p>
+            </article>
+            <article class="tile">
+                <div class="kicker">Step 02</div>
+                <h3>Upload course files</h3>
+                <p>Add PDF, DOCX or image notes. The platform analyzes the content.</p>
+            </article>
+            <article class="tile">
+                <div class="kicker">Step 03</div>
+                <h3>Chat and practice</h3>
+                <p>Ask questions, get explanations, and solve generated exercises.</p>
+            </article>
+        </div>
+    </section>
+
+    <section class="section reveal">
+        <h2>Core features</h2>
+        <p class="lead">Built for MVP now, designed to scale later.</p>
+        <div class="feature-grid">
+            <article class="tile">
+                <h3>AI tutor chat</h3>
+                <p>Context-aware answers using your latest uploaded material as grounding context.</p>
+            </article>
+            <article class="tile">
+                <h3>Document analysis</h3>
+                <p>Automatic text extraction pipeline placeholder ready for robust OCR/PDF parser upgrades.</p>
+            </article>
+            <article class="tile">
+                <h3>Quiz generation</h3>
+                <p>Exercises and revision prompts generated from your specific course content.</p>
+            </article>
+            <article class="tile">
+                <h3>Realtime app UX</h3>
+                <p>Session-based dashboard with pagination, typing indicator, and WebSocket architecture.</p>
+            </article>
+        </div>
+    </section>
+
+    <section class="section reveal">
+        <h2>Pricing</h2>
+        <p class="lead">Free to start. Upgrade when you need voice and higher usage.</p>
+        <div class="pricing-grid">
+            <article class="price">
+                <div class="name">Starter</div>
+                <div class="amount">$0</div>
+                <div class="unit">forever free</div>
+                <ul>
+                    <li>Text chat with AI tutor</li>
+                    <li>Document upload and analysis</li>
+                    <li>Daily message limit</li>
+                </ul>
+                <a href="/pricing/">See plan</a>
+            </article>
+            <article class="price featured">
+                <div class="name">Pro</div>
+                <div class="amount">$9</div>
+                <div class="unit">per month (example)</div>
+                <ul>
+                    <li>Everything in Starter</li>
+                    <li>Higher limits</li>
+                    <li>Voice architecture prepared</li>
+                </ul>
+                <a href="/pricing/">See pro plan</a>
+            </article>
+        </div>
+    </section>
+
+    <section class="section reveal">
+        <h2>Student feedback</h2>
+        <p class="lead">Early users focus on clarity, speed, and confidence gains.</p>
+        <div class="testi-grid">
+            <article class="tile">
+                <h3>"Clear explanations"</h3>
+                <p>It breaks complex lessons into simple steps and asks useful follow-up questions.</p>
+            </article>
+            <article class="tile">
+                <h3>"Perfect for revision"</h3>
+                <p>I upload notes and immediately get targeted practice questions before exams.</p>
+            </article>
+            <article class="tile">
+                <h3>"Feels structured"</h3>
+                <p>Chat history and session flow keep my learning focused instead of random searching.</p>
+            </article>
+        </div>
+    </section>
+
+    <section class="section">
+        <div class="cta reveal">
+            <h2>Ready to accelerate your learning?</h2>
+            <p>Start with the free plan and move to Pro when voice and advanced limits are available.</p>
+            {% if request.user.is_authenticated %}
+                <a href="/dashboard/">Go to dashboard</a>
+            {% else %}
+                <a href="/register/">Start now</a>
+            {% endif %}
+        </div>
+    </section>
+</main>
+
+<script>
+    (function () {
+        const items = document.querySelectorAll(".reveal");
+        if (!items.length) return;
+        const obs = new IntersectionObserver(function (entries) {
+            entries.forEach(function (entry) {
+                if (entry.isIntersecting) entry.target.classList.add("in");
+            });
+        }, { threshold: 0.12 });
+        items.forEach(function (el) { obs.observe(el); });
+    })();
+</script>
+{% endblock %}

@@ -1,0 +1,12 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="card" style="max-width:720px;margin:0 auto;">
+    <h2>Upload Course Material</h2>
+    <p class="small">Allowed: PDF, DOCX, JPG, JPEG, PNG</p>
+    <form method="post" enctype="multipart/form-data">
+        {% csrf_token %}
+        <input type="file" name="file" required />
+        <button type="submit">Upload and Analyze</button>
+    </form>
+</div>
+{% endblock %}
